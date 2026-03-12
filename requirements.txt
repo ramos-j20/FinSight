@@ -16,6 +16,8 @@ pydantic-settings
 streamlit
 structlog
 tenacity
+beautifulsoup4
+langchain-text-splitters
 pytest
 pytest-asyncio
 httpx

@@ -55,7 +55,7 @@ services:
       - finsight-net
 
   airflow:
-    image: apache/airflow:2.8.0
+    image: apache/airflow:2.10.5-python3.11
     ports:
       - "8081:8080"
     depends_on:
@@ -64,10 +64,16 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./backend:/opt/airflow/backend
+    env_file:
+      - .env
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://finsight_user:finsight_password@postgres:5432/finsight
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-    command: standalone
+      - PYTHONPATH=/opt/airflow
+    command: >
+      bash -c "pip install --no-cache-dir httpx tenacity beautifulsoup4 langchain-text-splitters boto3 pydantic-settings structlog &&
+               airflow standalone"
     networks:
       - finsight-net
 
