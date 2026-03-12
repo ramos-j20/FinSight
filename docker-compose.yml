@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: finsight_user
+      POSTGRES_PASSWORD: finsight_password
+      POSTGRES_DB: finsight
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finsight_user -d finsight"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finsight-net
+
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://finsight_user:finsight_password@postgres:5432/finsight
+    volumes:
+      - ./backend:/app/backend
+      - ./tests:/app/tests
+    networks:
+      - finsight-net
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8501:8501"
+    command: streamlit run frontend/app.py --server.port=8501 --server.address=0.0.0.0
+    depends_on:
+      - backend
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://finsight_user:finsight_password@postgres:5432/finsight
+    volumes:
+      - ./frontend:/app/frontend
+    networks:
+      - finsight-net
+
+  airflow:
+    image: apache/airflow:2.8.0
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/plugins:/opt/airflow/plugins
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://finsight_user:finsight_password@postgres:5432/finsight
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    command: standalone
+    networks:
+      - finsight-net
+
+volumes:
+  postgres_data:
+
+networks:
+  finsight-net:
+    driver: bridge
