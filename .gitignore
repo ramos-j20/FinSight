@@ -1,7 +1,7 @@
 # Agents / AI rules
 .agents/rules
 
-# Environment secrets — NEVER commit real credentials
+# Environment secrets
 .env
 
 # Python bytecode
