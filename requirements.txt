@@ -1,7 +1,7 @@
 fastapi
 uvicorn[standard]
 anthropic
-pinecone-client
+pinecone
 langchain
 langchain-community
 langchain-openai
