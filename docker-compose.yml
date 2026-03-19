@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U finsight_user -d finsight"]
+      test: [ "CMD-SHELL", "pg_isready -U finsight_user -d finsight" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -18,7 +18,7 @@ services:
       - finsight-net
 
   backend:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.backend
     ports:
@@ -72,13 +72,17 @@ services:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - PYTHONPATH=/opt/airflow
     command: >
-      bash -c "pip install --no-cache-dir httpx tenacity beautifulsoup4 langchain-text-splitters boto3 pydantic-settings structlog &&
+      bash -c "pip install --no-cache-dir httpx tenacity beautifulsoup4 langchain-text-splitters boto3 pydantic-settings structlog openai pinecone langchain langchain-community langchain-openai anthropic &&
+               rm -f /opt/airflow/airflow-webserver.pid &&
+               airflow db migrate &&
+               airflow users create -u admin -p admin123 -r Admin -e admin@example.com -f Admin -l User || true &&
                airflow standalone"
     networks:
       - finsight-net
 
 volumes:
   postgres_data:
+
 
 networks:
   finsight-net:

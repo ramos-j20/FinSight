@@ -35,3 +35,16 @@ Thumbs.db
 
 # Airflow logs (if running locally)
 airflow/logs/
+
+# Airflow runtime files generated on first run
+airflow.db
+airflow.cfg
+airflow.cfg.save
+
+# Test coverage artifacts
+.coverage
+htmlcov/
+coverage.xml
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/

@@ -92,37 +92,47 @@ def edgar_ingestion_dag():
         filing_types_raw = Variable.get("FINSIGHT_FILING_TYPES", default_var="10-K")
         filing_types = [f.strip() for f in filing_types_raw.split(",") if f.strip()]
 
-        client = EDGARClient()
-        s3 = S3Client()
+        # Convert async URL to sync for DB check
+        db_url = settings.DATABASE_URL.replace("+asyncpg", "")
+        engine = create_engine(db_url)
 
         new_filings: list[dict] = []
 
-        for ticker, cik in cik_map.items():
-            for ftype in filing_types:
-                log.info("Fetching %s filings for %s (CIK %s)", ftype, ticker, cik)
-                try:
-                    records = _run_async(client.get_filings(cik, ftype, count=5))
-                except Exception:
-                    log.exception("Failed to fetch %s filings for %s", ftype, ticker)
-                    continue
-
-                for rec in records:
-                    period = rec.period_of_report or rec.filing_date
-                    raw_key = S3Client.raw_key(ticker, ftype, period)
-
-                    if s3.key_exists(raw_key):
-                        log.info("Already exists in S3, skipping: %s", raw_key)
+        with engine.connect() as conn:
+            for ticker, cik in cik_map.items():
+                for ftype in filing_types:
+                    log.info("Fetching %s filings for %s (CIK %s)", ftype, ticker, cik)
+                    try:
+                        records = _run_async(client.get_filings(cik, ftype, count=5))
+                    except Exception:
+                        log.exception("Failed to fetch %s filings for %s", ftype, ticker)
                         continue
 
-                    new_filings.append({
-                        "ticker": ticker,
-                        "filing_type": ftype,
-                        "period": period,
-                        "accession_number": rec.accession_number,
-                        "filing_date": rec.filing_date,
-                        "primary_document_url": rec.primary_document_url,
-                        "s3_raw_key": raw_key,
-                    })
+                    for rec in records:
+                        period = rec.period_of_report or rec.filing_date
+                        raw_key = S3Client.raw_key(ticker, ftype, period)
+
+                        # Check if record exists in DB
+                        res = conn.execute(text("""
+                            SELECT 1 FROM public.filing_metadata 
+                            WHERE ticker = :t AND filing_type = :f AND period = :p
+                        """), {"t": ticker, "f": ftype, "p": period}).fetchone()
+
+                        if res:
+                            log.info("Already in DB, skipping: %s %s %s", ticker, ftype, period)
+                            continue
+
+                        # If not in DB, we need to ingest (even if already in S3, 
+                        # download_and_store_raw will handle it)
+                        new_filings.append({
+                            "ticker": ticker,
+                            "filing_type": ftype,
+                            "period": period,
+                            "accession_number": rec.accession_number,
+                            "filing_date": rec.filing_date,
+                            "primary_document_url": rec.primary_document_url,
+                            "s3_raw_key": raw_key,
+                        })
 
         log.info("New filings to ingest: %d", len(new_filings))
         return new_filings
@@ -172,8 +182,15 @@ def edgar_ingestion_dag():
         from backend.ingestion.chunker import chunk_document, serialize_chunks
         from backend.ingestion.parser import parse_filing_to_text
         from backend.ingestion.s3_client import S3Client
+        from sqlalchemy import create_engine, text
+        from backend.core.config import get_settings
 
         s3 = S3Client()
+        settings = get_settings()
+        db_url = settings.DATABASE_URL
+        if "+asyncpg" in db_url:
+            db_url = db_url.replace("+asyncpg", "")
+        engine = create_engine(db_url)
 
         for f in filings:
             ticker = f["ticker"]
@@ -189,6 +206,20 @@ def edgar_ingestion_dag():
                 chunks = chunk_document(doc)
                 processed_key = S3Client.processed_key(ticker, ftype, period)
                 s3.upload_text(serialize_chunks(chunks), processed_key)
+
+                # IMPORTANT: Insert tracking record into Postgres for the embedding pipeline
+                log.info("Inserting metadata into Postgres for %s", ticker)
+                with engine.begin() as conn:
+                    conn.execute(text("""
+                        INSERT INTO public.filing_metadata 
+                        (ticker, company_name, filing_type, period, s3_raw_key, status, is_embedded, ingested_at, chunk_count)
+                        VALUES 
+                        (:ticker, 'Company', :ftype, :period, :raw_key, 'COMPLETE', false, NOW(), :c_count)
+                    """), {
+                        "ticker": ticker, "ftype": ftype, "period": period,
+                        "raw_key": raw_key, "c_count": len(chunks)
+                    })
+                log.info("Successfully inserted metadata for %s", ticker)
 
                 log.info("Done: %s (%d chunks)", processed_key, len(chunks))
             except Exception:

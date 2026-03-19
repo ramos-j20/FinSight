@@ -3,7 +3,7 @@ import datetime
 from enum import Enum
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Float, Integer, String, Enum as SQLAlchemyEnum
+from sqlalchemy import Boolean, JSON, DateTime, Float, Integer, String, Enum as SQLAlchemyEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -36,6 +36,7 @@ class FilingMetadata(Base):
     status: Mapped[IngestionStatus] = mapped_column(
         SQLAlchemyEnum(IngestionStatus), default=IngestionStatus.PENDING
     )
+    is_embedded: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class QueryLog(Base):
