@@ -1,0 +1,5 @@
+{"query": "What are Apple's main revenue segments?", "ticker_filter": "AAPL", "expected_chunk_ids": ["aapl-10k-2023-chunk-001", "aapl-10k-2023-chunk-002"]}
+{"query": "What were Apple's total net sales in fiscal 2023?", "ticker_filter": "AAPL", "expected_chunk_ids": ["aapl-10k-2023-chunk-010"]}
+{"query": "What risks does Apple identify related to supply chain disruptions?", "ticker_filter": "AAPL", "expected_chunk_ids": ["aapl-10k-2023-chunk-045"]}
+{"query": "How does Apple describe its competitive position in the smartphone market?", "ticker_filter": "AAPL", "expected_chunk_ids": ["aapl-10k-2023-chunk-020", "aapl-10k-2023-chunk-021"]}
+{"query": "What is Apple's strategy for services growth and recurring revenue?", "ticker_filter": "AAPL", "expected_chunk_ids": ["aapl-10k-2023-chunk-030"]}
