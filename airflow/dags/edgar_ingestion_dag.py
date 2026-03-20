@@ -89,7 +89,7 @@ def edgar_ingestion_dag():
         from backend.ingestion.edgar_client import EDGARClient
         from backend.ingestion.s3_client import S3Client
 
-        filing_types_raw = Variable.get("FINSIGHT_FILING_TYPES", default_var="10-K")
+        filing_types_raw = Variable.get("FINSIGHT_FILING_TYPES", default_var="10-K,10-Q")
         filing_types = [f.strip() for f in filing_types_raw.split(",") if f.strip()]
 
         # Convert async URL to sync for DB check
