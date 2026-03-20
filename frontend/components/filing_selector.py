@@ -16,13 +16,24 @@ def render_filing_selector(
     col1, col2 = st.columns([2, 2])
 
     with col1:
-        raw_ticker = st.text_input(
-            "🏢 Ticker Filter",
-            value="",
-            placeholder="e.g. AAPL (leave blank for all)",
+        MAG_7_OPTIONS = {
+            "🌐 All": None,
+            "🍎 Apple (AAPL)": "AAPL",
+            "🪟 Microsoft (MSFT)": "MSFT",
+            "🔍 Alphabet (GOOGL)": "GOOGL",
+            "📦 Amazon (AMZN)": "AMZN",
+            "♾️ Meta (META)": "META",
+            "🖥️ Nvidia (NVDA)": "NVDA",
+            "🚗 Tesla (TSLA)": "TSLA"
+        }
+        
+        selected_display = st.selectbox(
+            "🏢 Ticker Selection",
+            options=list(MAG_7_OPTIONS.keys()),
+            index=0,
             key="filing_selector_ticker",
         )
-        ticker = raw_ticker.strip().upper() or None
+        ticker = MAG_7_OPTIONS[selected_display]
 
     with col2:
         filing_type_option = st.selectbox(
