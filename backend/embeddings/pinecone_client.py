@@ -167,11 +167,16 @@ class PineconeClient:
             return set()
 
         existing: set[str] = set()
-        # Pinecone fetch supports up to 1000 IDs per call
-        for i in range(0, len(ids), 1000):
-            batch = ids[i : i + 1000]
+        # Pinecone fetch supports up to 1000 IDs per call, but AWS ELB throws 414 
+        # Request-URI Too Large if the query string is too long. Since our IDs are long,
+        # we reduce the batch size to 200.
+        for i in range(0, len(ids), 200):
+            batch = ids[i : i + 200]
             response = self._index.fetch(ids=batch)
-            existing.update(response.get("vectors", {}).keys())
+            if hasattr(response, "vectors") and response.vectors:
+                existing.update(response.vectors.keys())
+            elif isinstance(response, dict) and "vectors" in response:
+                existing.update(response["vectors"].keys())
 
         return existing
 
