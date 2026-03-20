@@ -69,10 +69,10 @@ class OpenAIEmbedder:
         reraise=True,
     )
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        """Embed a list of texts in a single API call.
+        """Embed a list of texts using the OpenAI API.
 
-        Texts exceeding the 2048-token limit are truncated and a warning
-        is logged.
+        Texts are processed in batches of 100 to avoid hitting API size limits
+        and to ensure regular progress.
 
         Args:
             texts: The list of texts to embed.
@@ -83,28 +83,37 @@ class OpenAIEmbedder:
         Raises:
             EmbeddingError: If the API call fails.
         """
-        truncated_texts: list[str] = []
-        for idx, text in enumerate(texts):
-            words = text.split()
-            if len(words) > _MAX_WORDS:
-                logger.warning(
-                    "Text exceeds 2048 token limit, truncating",
-                    chunk_index=idx,
-                    original_words=len(words),
-                    truncated_words=_MAX_WORDS,
-                )
-                truncated_texts.append(" ".join(words[:_MAX_WORDS]))
-            else:
-                truncated_texts.append(text)
+        batch_size = 100
+        all_embeddings: list[list[float]] = []
 
-        try:
-            response = self._client.embeddings.create(
-                input=truncated_texts,
-                model=MODEL,
-            )
-            # OpenAI returns embeddings sorted by index
-            return [item.embedding for item in response.data]
-        except openai.RateLimitError:
-            raise  # let tenacity handle retries
-        except Exception as exc:
-            raise EmbeddingError(f"Failed to embed batch: {exc}") from exc
+        for i in range(0, len(texts), batch_size):
+            batch_texts = texts[i : i + batch_size]
+            truncated_batch: list[str] = []
+            
+            for idx, text in enumerate(batch_texts):
+                words = text.split()
+                if len(words) > _MAX_WORDS:
+                    logger.warning(
+                        "Text exceeds 2048 token limit, truncating",
+                        chunk_index=i + idx,
+                        original_words=len(words),
+                        truncated_words=_MAX_WORDS,
+                    )
+                    truncated_batch.append(" ".join(words[:_MAX_WORDS]))
+                else:
+                    truncated_batch.append(text)
+
+            try:
+                response = self._client.embeddings.create(
+                    input=truncated_batch,
+                    model=MODEL,
+                )
+                batch_embeddings = [item.embedding for item in response.data]
+                all_embeddings.extend(batch_embeddings)
+                logger.info("Batch embedding complete", batch_start=i, count=len(batch_embeddings))
+            except openai.RateLimitError:
+                raise  # let tenacity handle retries
+            except Exception as exc:
+                raise EmbeddingError(f"Failed to embed batch starting at {i}: {exc}") from exc
+
+        return all_embeddings

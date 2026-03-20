@@ -88,9 +88,14 @@ def edgar_ingestion_dag():
         """
         from backend.ingestion.edgar_client import EDGARClient
         from backend.ingestion.s3_client import S3Client
+        from backend.core.config import get_settings
+        from sqlalchemy import create_engine, text
 
         filing_types_raw = Variable.get("FINSIGHT_FILING_TYPES", default_var="10-K,10-Q")
         filing_types = [f.strip() for f in filing_types_raw.split(",") if f.strip()]
+
+        settings = get_settings()
+        client = EDGARClient()
 
         # Convert async URL to sync for DB check
         db_url = settings.DATABASE_URL.replace("+asyncpg", "")
