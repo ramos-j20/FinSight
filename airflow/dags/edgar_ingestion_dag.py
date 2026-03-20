@@ -59,7 +59,7 @@ def edgar_ingestion_dag():
         """Resolve ticker symbols to SEC CIK numbers."""
         from backend.ingestion.edgar_client import EDGARClient
 
-        tickers_raw = Variable.get("FINSIGHT_TICKERS", default_var="AAPL")
+        tickers_raw = Variable.get("FINSIGHT_TICKERS", default_var="AAPL,MSFT,NVDA,GOOGL,AMZN,META,TSLA")
         tickers = [t.strip() for t in tickers_raw.split(",") if t.strip()]
 
         log.info("Fetching CIKs for tickers: %s", tickers)

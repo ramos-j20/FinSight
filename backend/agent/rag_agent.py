@@ -54,7 +54,7 @@ class FinSightAgent:
         self.retriever = FinSightRetriever()
         self.client = Anthropic(api_key=self.settings.ANTHROPIC_API_KEY)
         self.async_client = AsyncAnthropic(api_key=self.settings.ANTHROPIC_API_KEY)
-        self.model_used = "claude-sonnet-4-6"
+        self.model_used = self.settings.ANTHROPIC_MODEL
         
     def _is_comparative(self, query: str) -> bool:
         """Detect if the query is comparative."""

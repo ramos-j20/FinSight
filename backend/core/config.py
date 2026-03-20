@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     # API Keys
     ANTHROPIC_API_KEY: str
     OPENAI_API_KEY: str
+    ANTHROPIC_MODEL: str = "claude-3-5-haiku-20241022"
     
     # Pinecone
     PINECONE_API_KEY: str
