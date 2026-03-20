@@ -35,7 +35,11 @@ class FinSightRetriever:
         
         filter_dict = {}
         if ticker_filter:
-            filter_dict["ticker"] = ticker_filter
+            tickers = [t.strip().upper() for t in ticker_filter.split(",")]
+            if len(tickers) == 1:
+                filter_dict["ticker"] = tickers[0]
+            else:
+                filter_dict["ticker"] = {"$in": tickers}
         if filing_type_filter:
             filter_dict["filing_type"] = filing_type_filter
             

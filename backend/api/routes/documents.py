@@ -45,8 +45,13 @@ async def get_documents(
     count_stmt = select(func.count()).select_from(FilingMetadata)
 
     if ticker:
-        stmt = stmt.where(FilingMetadata.ticker == ticker.upper())
-        count_stmt = count_stmt.where(FilingMetadata.ticker == ticker.upper())
+        tickers = [t.strip().upper() for t in ticker.split(",")]
+        if len(tickers) == 1:
+            stmt = stmt.where(FilingMetadata.ticker == tickers[0])
+            count_stmt = count_stmt.where(FilingMetadata.ticker == tickers[0])
+        else:
+            stmt = stmt.where(FilingMetadata.ticker.in_(tickers))
+            count_stmt = count_stmt.where(FilingMetadata.ticker.in_(tickers))
     if filing_type:
         stmt = stmt.where(FilingMetadata.filing_type == filing_type)
         count_stmt = count_stmt.where(FilingMetadata.filing_type == filing_type)

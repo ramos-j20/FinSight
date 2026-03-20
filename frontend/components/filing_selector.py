@@ -17,7 +17,6 @@ def render_filing_selector(
 
     with col1:
         MAG_7_OPTIONS = {
-            "🌐 All": None,
             "🍎 Apple (AAPL)": "AAPL",
             "🪟 Microsoft (MSFT)": "MSFT",
             "🔍 Alphabet (GOOGL)": "GOOGL",
@@ -27,13 +26,18 @@ def render_filing_selector(
             "🚗 Tesla (TSLA)": "TSLA"
         }
         
-        selected_display = st.selectbox(
+        selected_displays = st.multiselect(
             "🏢 Ticker Selection",
             options=list(MAG_7_OPTIONS.keys()),
-            index=0,
+            default=[],
+            placeholder="Select companies (leave empty for all)",
             key="filing_selector_ticker",
         )
-        ticker = MAG_7_OPTIONS[selected_display]
+        
+        if not selected_displays:
+            ticker = None
+        else:
+            ticker = ",".join([MAG_7_OPTIONS[d] for d in selected_displays])
 
     with col2:
         filing_type_option = st.selectbox(
