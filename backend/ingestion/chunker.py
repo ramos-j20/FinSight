@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from backend.core.config import get_settings
 from backend.core.logging import get_logger
 from backend.ingestion.parser import ParsedDocument
 
@@ -26,8 +27,8 @@ class DocumentChunk:
 
 def chunk_document(
     doc: ParsedDocument,
-    chunk_size: int = 1000,
-    chunk_overlap: int = 200,
+    chunk_size: int | None = None,
+    chunk_overlap: int | None = None,
 ) -> list[DocumentChunk]:
     """Split a ParsedDocument into overlapping text chunks.
 
@@ -39,25 +40,29 @@ def chunk_document(
 
     Args:
         doc: The parsed document to split.
-        chunk_size: Target size in characters for each chunk.
-        chunk_overlap: Number of overlapping characters between chunks.
+        chunk_size: Target size in characters for each chunk (default from settings).
+        chunk_overlap: Number of overlapping characters between chunks (default from settings).
 
     Returns:
         List of DocumentChunk objects.
     """
+    settings = get_settings()
+    actual_chunk_size = chunk_size if chunk_size is not None else settings.CHUNK_SIZE
+    actual_chunk_overlap = chunk_overlap if chunk_overlap is not None else settings.CHUNK_OVERLAP
+
     logger.info(
         "Chunking document",
         ticker=doc.ticker,
         filing_type=doc.filing_type,
         period=doc.period,
         char_count=doc.char_count,
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
+        chunk_size=actual_chunk_size,
+        chunk_overlap=actual_chunk_overlap,
     )
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
+        chunk_size=actual_chunk_size,
+        chunk_overlap=actual_chunk_overlap,
         length_function=len,
         separators=["\n\n", "\n", ". ", " ", ""],
     )

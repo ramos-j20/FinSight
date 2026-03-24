@@ -86,7 +86,8 @@ def parse_filing_to_text(
     # 3. Remove standalone page-number lines
     text = _PAGE_NUMBER_RE.sub("", text)
 
-    # 4. Remove non-ASCII characters
+    # 4. Remove non-ASCII characters but preserve common typographic chars
+    text = text.replace("—", "-").replace("–", "-").replace("\xa0", " ").replace("\u00A0", " ")
     text = _NON_ASCII_RE.sub("", text)
 
     # 5. Normalize whitespace

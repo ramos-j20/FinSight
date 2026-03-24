@@ -206,7 +206,18 @@ class EDGARClient:
         # Detect HTML content and strip tags
         if bool(re.search(r"<\s*(html|body|div|table|p)\b", raw, re.IGNORECASE)):
             soup = BeautifulSoup(raw, "html.parser")
-            text = soup.get_text(separator="\n")
+            
+            # Preserve tabular structure with spaces
+            for td in soup.find_all(["td", "th"]):
+                td.append("    ")
+            # Ensure block elements start new lines
+            for block in soup.find_all(["tr", "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "br"]):
+                block.append("\n")
+                
+            text = soup.get_text(separator=" ", strip=True)
+            # Normalize excessive whitespace but keep enough for tables
+            text = re.sub(r' {3,}', '   ', text)
+            text = re.sub(r'\n\s*\n', '\n\n', text)
         else:
             text = raw
 

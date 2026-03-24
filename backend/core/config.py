@@ -28,9 +28,9 @@ class Settings(BaseSettings):
     
     # System settings
     LOG_LEVEL: str = "INFO"
-    CHUNK_SIZE: int = 1000
-    CHUNK_OVERLAP: int = 200
-    RETRIEVAL_TOP_K: int = 10
+    CHUNK_SIZE: int = 4000
+    CHUNK_OVERLAP: int = 500
+    RETRIEVAL_TOP_K: int = 30
     PROMPT_VERSION: str = "1.0.0"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
