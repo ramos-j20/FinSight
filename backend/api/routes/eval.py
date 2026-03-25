@@ -95,3 +95,39 @@ async def get_eval_results() -> list[dict]:
         }
         for row in rows
     ]
+
+
+# ---------------------------------------------------------------------------
+# GET /eval/routing-stats
+# ---------------------------------------------------------------------------
+
+
+@router.get("/routing-stats")
+async def get_routing_stats() -> list[dict]:
+    """Return model routing statistics from query logs."""
+    from backend.db.models import QueryLog
+    from sqlalchemy import func
+
+    session_factory = get_session_maker()
+    async with session_factory() as session:
+        stmt = (
+            select(
+                QueryLog.mode_used,
+                QueryLog.model_used,
+                func.count(QueryLog.id).label("query_count"),
+                func.avg(QueryLog.latency_ms).label("avg_latency")
+            )
+            .group_by(QueryLog.mode_used, QueryLog.model_used)
+        )
+        result = await session.execute(stmt)
+        rows = result.all()
+
+    return [
+        {
+            "mode_used": mode or "unknown",
+            "model_used": model or "unknown",
+            "count": q_count,
+            "avg_latency": float(avg_lat) if avg_lat else 0.0,
+        }
+        for mode, model, q_count, avg_lat in rows
+    ]

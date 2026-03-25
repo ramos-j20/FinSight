@@ -29,16 +29,18 @@ def _stream_query(
     ticker_filter: str | None,
     filing_type_filter: str | None,
     conversation_history: list[dict],
-) -> tuple[str, list[dict], int, str, int | None]:
+    mode_override: str | None,
+) -> tuple[str, list[dict], int, str, int | None, str, str, str]:
     """Call POST /query/stream and collect streamed tokens.
 
     Returns:
-        (full_answer, citations, latency_ms, prompt_version, query_log_id)
+        (full_answer, citations, latency_ms, prompt_version, query_log_id, model_used, mode_used, routing_reason)
     """
     payload: dict = {
         "query": query,
         "session_id": session_id,
         "conversation_history": conversation_history,
+        "mode_override": mode_override,
     }
     if ticker_filter:
         payload["ticker_filter"] = ticker_filter
@@ -50,6 +52,9 @@ def _stream_query(
     latency_ms: int = 0
     prompt_version: str = "v1"
     query_log_id: int | None = None
+    model_used: str = ""
+    mode_used: str = ""
+    routing_reason: str = ""
 
     start = time.monotonic()
 
@@ -82,13 +87,16 @@ def _stream_query(
                         latency_ms = raw.get("latency_ms", 0)
                         prompt_version = raw.get("prompt_version", "v1")
                         query_log_id = raw.get("query_log_id")
+                        model_used = raw.get("model_used", "")
+                        mode_used = raw.get("mode_used", "")
+                        routing_reason = raw.get("routing_reason", "")
                 elif chunk_type == "error":
                     raise RuntimeError(chunk.get("data", "Unknown streaming error"))
 
     if not latency_ms:
         latency_ms = int((time.monotonic() - start) * 1000)
 
-    return "".join(answer_parts), citations, latency_ms, prompt_version, query_log_id
+    return "".join(answer_parts), citations, latency_ms, prompt_version, query_log_id, model_used, mode_used, routing_reason
 
 
 def _submit_feedback(backend_url: str, query_log_id: int, score: int) -> None:
@@ -128,6 +136,21 @@ def render_chat_page(backend_url: str) -> None:
         ticker_filter, filing_type_filter = render_filing_selector(backend_url)
 
     st.markdown("---")
+    
+    mode = st.radio(
+        "Query Mode",
+        ["🤖 Auto", "⚡ Fast", "🔬 Deep"],
+        horizontal=True,
+        help="Auto selects the best model based on your query. Fast = Haiku. Deep = Sonnet."
+    )
+
+    mode_map = {
+        "🤖 Auto": "auto",
+        "⚡ Fast": "fast",
+        "🔬 Deep": "deep"
+    }
+
+    st.markdown("---")
 
     # ── Control buttons ───────────────────────────────────────────────────────
     btn_col1, btn_col2, _ = st.columns([1, 1, 5])
@@ -158,9 +181,12 @@ def render_chat_page(backend_url: str) -> None:
                     render_citation_card(cit)
                 # Latency / version footer
                 if msg.get("latency_ms") or msg.get("prompt_version"):
+                    model = msg.get("model_used", "claude-haiku")
+                    md = msg.get("mode_used", "fast")
+                    reason = msg.get("routing_reason", "default")
+                    md_display = f"{md} (auto-routed)" if reason != "user override" else md
                     st.caption(
-                        f"⏱ {msg.get('latency_ms', 0)} ms  •  "
-                        f"🔖 {msg.get('prompt_version', '')}"
+                        f"Model: {model}  |  Mode: {md_display}  |  Reason: {reason}  |  Latency: {msg.get('latency_ms', 0)}ms"
                     )
                 # Feedback widget
                 qlog_id = st.session_state["query_log_ids"].get(idx)
@@ -191,13 +217,14 @@ def render_chat_page(backend_url: str) -> None:
         with st.chat_message("assistant"):
             response_container = st.empty()
             try:
-                answer, citations, latency_ms, prompt_version, query_log_id = _stream_query(
+                answer, citations, latency_ms, prompt_version, query_log_id, model_used, mode_used, routing_reason = _stream_query(
                     backend_url=backend_url,
                     query=query,
                     session_id=st.session_state["session_id"],
                     ticker_filter=ticker_filter,
                     filing_type_filter=filing_type_filter,
                     conversation_history=convo_history,
+                    mode_override=mode_map[mode],
                 )
                 response_container.markdown(answer)
 
@@ -208,8 +235,9 @@ def render_chat_page(backend_url: str) -> None:
                         render_citation_card(cit)
 
                 # Latency footer
+                md_display = f"{mode_used} (auto-routed)" if routing_reason != "user override" else mode_used
                 st.caption(
-                    f"⏱ {latency_ms} ms  •  🔖 {prompt_version}"
+                    f"Model: {model_used}  |  Mode: {md_display}  |  Reason: {routing_reason}  |  Latency: {latency_ms}ms"
                 )
 
                 # Persist to session state
@@ -220,6 +248,9 @@ def render_chat_page(backend_url: str) -> None:
                     "citations": citations,
                     "latency_ms": latency_ms,
                     "prompt_version": prompt_version,
+                    "model_used": model_used,
+                    "mode_used": mode_used,
+                    "routing_reason": routing_reason,
                 })
                 if query_log_id:
                     st.session_state["query_log_ids"][assistant_idx] = query_log_id

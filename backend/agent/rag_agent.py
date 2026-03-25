@@ -18,6 +18,7 @@ from backend.agent.prompt_builder import (
     PROMPT_VERSION
 )
 from backend.agent.citation_parser import extract_citations, Citation, CitationParseError
+from backend.agent.model_router import resolve_model
 
 
 logger = get_logger(__name__)
@@ -31,6 +32,7 @@ class QueryRequest:
     ticker_filter: str | None = None
     filing_type_filter: str | None = None
     conversation_history: list[dict] = field(default_factory=list)
+    mode_override: str | None = None
 
 
 @dataclass
@@ -44,6 +46,8 @@ class AgentResponse:
     latency_ms: int
     prompt_version: str
     model_used: str
+    mode_used: str
+    routing_reason: str
 
 
 class FinSightAgent:
@@ -85,12 +89,26 @@ class FinSightAgent:
         """Run a standard RAG query using the Claude API."""
         start_time = time.time()
         
-        logger.info("Starting query", session_id=query_request.session_id, query=query_request.query)
+        query_type = "comparison" if self._is_comparative(query_request.query) else "rag"
+        route = resolve_model(
+            mode_override=query_request.mode_override,
+            query=query_request.query,
+            query_type=query_type
+        )
         
-        top_k = getattr(self.settings, "RETRIEVAL_TOP_K", 10)
+        logger.info(
+            "Starting query", 
+            session_id=query_request.session_id, 
+            query=query_request.query,
+            model_selected=route.model,
+            mode=route.mode_used,
+            reason=route.routing_reason
+        )
+        
+        target_top_k = max(route.top_k, getattr(self.settings, "RETRIEVAL_TOP_K", 10))
         chunks = self.retriever.retrieve(
             query=query_request.query,
-            top_k=top_k,
+            top_k=target_top_k,
             ticker_filter=query_request.ticker_filter,
             filing_type_filter=query_request.filing_type_filter
         )
@@ -114,8 +132,8 @@ class FinSightAgent:
             )
             
         response = self.client.messages.create(
-            model=self.model_used,
-            max_tokens=2048,
+            model=route.model,
+            max_tokens=route.max_tokens,
             system=system_prompt,
             messages=messages
         )
@@ -138,7 +156,9 @@ class FinSightAgent:
             query=query_request.query,
             latency_ms=latency_ms,
             prompt_version=PROMPT_VERSION,
-            model_used=self.model_used
+            model_used=route.model,
+            mode_used=route.mode_used,
+            routing_reason=route.routing_reason
         )
         
         logger.info(
@@ -153,12 +173,27 @@ class FinSightAgent:
     async def stream_query(self, query_request: QueryRequest) -> AsyncGenerator[str, None]:
         """Stream a query, yielding text chunks and finally a JSON with citations."""
         start_time = time.time()
-        logger.info("Starting stream_query", session_id=query_request.session_id, query=query_request.query)
         
-        top_k = getattr(self.settings, "RETRIEVAL_TOP_K", 10)
+        query_type = "comparison" if self._is_comparative(query_request.query) else "rag"
+        route = resolve_model(
+            mode_override=query_request.mode_override,
+            query=query_request.query,
+            query_type=query_type
+        )
+        
+        logger.info(
+            "Starting stream_query", 
+            session_id=query_request.session_id, 
+            query=query_request.query,
+            model_selected=route.model,
+            mode=route.mode_used,
+            reason=route.routing_reason
+        )
+        
+        target_top_k = max(route.top_k, getattr(self.settings, "RETRIEVAL_TOP_K", 10))
         chunks = self.retriever.retrieve(
             query=query_request.query,
-            top_k=top_k,
+            top_k=target_top_k,
             ticker_filter=query_request.ticker_filter,
             filing_type_filter=query_request.filing_type_filter
         )
@@ -182,8 +217,8 @@ class FinSightAgent:
             )
             
         stream = await self.async_client.messages.create(
-            model=self.model_used,
-            max_tokens=2048,
+            model=route.model,
+            max_tokens=route.max_tokens,
             system=system_prompt,
             messages=messages,
             stream=True
@@ -202,9 +237,17 @@ class FinSightAgent:
             logger.error("Citation parsing failed during streaming", error=str(exc))
             citations = []
             
+        latency_ms = int((time.time() - start_time) * 1000)
         final_chunk = {
             "type": "citations",
-            "data": [citation.dict() for citation in citations]
+            "data": {
+                "citations": [citation.dict() for citation in citations],
+                "latency_ms": latency_ms,
+                "prompt_version": PROMPT_VERSION,
+                "model_used": route.model,
+                "mode_used": route.mode_used,
+                "routing_reason": route.routing_reason
+            }
         }
         
         # Optionally, format the final json clearly

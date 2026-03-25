@@ -53,6 +53,9 @@ class QueryLog(Base):
         DateTime(timezone=True), default=datetime.datetime.utcnow
     )
     feedback_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    model_used: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    mode_used: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    routing_reason: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class EvalResult(Base):

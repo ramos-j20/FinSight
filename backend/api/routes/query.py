@@ -55,6 +55,9 @@ async def _log_query(
         llm_response=agent_resp.answer,
         citations=[c.dict() for c in agent_resp.citations],
         latency_ms=float(agent_resp.latency_ms),
+        model_used=agent_resp.model_used,
+        mode_used=agent_resp.mode_used,
+        routing_reason=agent_resp.routing_reason,
     )
     db.add(log)
     await db.commit()
@@ -79,6 +82,7 @@ async def query_endpoint(
         ticker_filter=request.ticker_filter,
         filing_type_filter=request.filing_type_filter,
         conversation_history=request.conversation_history,
+        mode_override=request.mode_override,
     )
 
     try:
@@ -101,6 +105,9 @@ async def query_endpoint(
         latency_ms=agent_resp.latency_ms,
         prompt_version=agent_resp.prompt_version,
         query_log_id=query_log_id,
+        model_used=agent_resp.model_used,
+        mode_used=agent_resp.mode_used,
+        routing_reason=agent_resp.routing_reason,
     )
 
 
@@ -119,6 +126,7 @@ async def query_stream_endpoint(request: QueryRequest) -> StreamingResponse:
         ticker_filter=request.ticker_filter,
         filing_type_filter=request.filing_type_filter,
         conversation_history=request.conversation_history,
+        mode_override=request.mode_override,
     )
 
     async def event_generator() -> AsyncGenerator[str, None]:

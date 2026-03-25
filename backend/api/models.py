@@ -18,6 +18,7 @@ class QueryRequest(BaseModel):
     ticker_filter: str | None = None
     filing_type_filter: Literal["10-K", "10-Q"] | None = None
     conversation_history: list[dict] = Field(default_factory=list)
+    mode_override: str | None = None
 
 
 class FeedbackRequest(BaseModel):
@@ -59,6 +60,9 @@ class QueryResponse(BaseModel):
     latency_ms: int
     prompt_version: str
     query_log_id: int
+    model_used: str
+    mode_used: str
+    routing_reason: str
 
 
 class StreamChunkResponse(BaseModel):

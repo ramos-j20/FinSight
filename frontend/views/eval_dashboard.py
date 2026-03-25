@@ -70,6 +70,34 @@ def render_eval_dashboard(backend_url: str) -> None:
 
     st.markdown("---")
 
+    # ── Model Routing Distribution ────────────────────────────────────────────
+    st.subheader("🔀 Model Routing Distribution")
+    try:
+        routing_resp = httpx.get(f"{backend_url}/eval/routing-stats", timeout=10)
+        if routing_resp.status_code == 200:
+            routing_data = routing_resp.json()
+            if routing_data:
+                import pandas as pd
+                routing_df = pd.DataFrame(routing_data)
+                
+                chart_df = routing_df.groupby("mode_used")["count"].sum().reset_index()
+                st.bar_chart(chart_df.set_index("mode_used"), horizontal=True)
+                
+                st.markdown("**Average Latency per Mode**")
+                modes = routing_df["mode_used"].unique()
+                cols = st.columns(max(1, len(modes)))
+                for i, m in enumerate(sorted(modes)):
+                    avg_lat = routing_df[routing_df["mode_used"] == m]["avg_latency"].mean()
+                    cols[i].metric(f"{m.capitalize()} Mode", f"{avg_lat:.0f} ms")
+            else:
+                st.info("No query logs available yet to show routing distribution.")
+        else:
+            st.warning("Could not fetch routing stats.")
+    except Exception as exc:
+        st.error(f"Failed to load routing stats: {exc}")
+
+    st.markdown("---")
+
     # ── Historical results ────────────────────────────────────────────────────
     st.subheader("📜 Historical Eval Results")
 
@@ -92,8 +120,15 @@ def render_eval_dashboard(backend_url: str) -> None:
         df = pd.DataFrame(rows)
 
         # Rename / select display columns (gracefully handle missing cols)
-        display_cols = [c for c in ["eval_run_id", "created_at", "hit_rate", "mrr", "faithfulness_score", "query"] if c in df.columns]
+        display_cols = [c for c in ["eval_run_id", "created_at", "hit_rate", "mrr", "faithfulness_score", "query", "expected_chunk_ids", "retrieved_chunk_ids"] if c in df.columns]
         df_display = df[display_cols].copy()
+
+        # Make sure lists are converted to strings so Streamlit can render them safely
+        if "expected_chunk_ids" in df_display.columns:
+            df_display["expected_chunk_ids"] = df_display["expected_chunk_ids"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
+        
+        if "retrieved_chunk_ids" in df_display.columns:
+            df_display["retrieved_chunk_ids"] = df_display["retrieved_chunk_ids"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
 
         col_renames = {
             "eval_run_id": "Run ID",
@@ -102,6 +137,8 @@ def render_eval_dashboard(backend_url: str) -> None:
             "mrr": "MRR",
             "faithfulness_score": "Avg Score",
             "query": "Query",
+            "expected_chunk_ids": "Expected Chunks",
+            "retrieved_chunk_ids": "Retrieved Chunks",
         }
         df_display = df_display.rename(columns={k: v for k, v in col_renames.items() if k in df_display.columns})
 

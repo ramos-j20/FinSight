@@ -96,8 +96,8 @@ with st.sidebar:
 # Page routing
 # ---------------------------------------------------------------------------
 if page == "💬 Chat":
-    from frontend.pages.chat import render_chat_page
+    from frontend.views.chat import render_chat_page
     render_chat_page(BACKEND_URL)
 else:
-    from frontend.pages.eval_dashboard import render_eval_dashboard
+    from frontend.views.eval_dashboard import render_eval_dashboard
     render_eval_dashboard(BACKEND_URL)
