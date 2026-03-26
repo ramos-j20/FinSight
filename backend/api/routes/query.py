@@ -130,18 +130,61 @@ async def query_stream_endpoint(request: QueryRequest) -> StreamingResponse:
     )
 
     async def event_generator() -> AsyncGenerator[str, None]:
+        from backend.db.session import get_session_maker
+        session_maker = get_session_maker()
+        
         agent = FinSightAgent()
+        full_answer = ""
+        citations = []
+        latency_ms = 0
+        model_used = ""
+        mode_used = ""
+        routing_reason = ""
+
         try:
             async for chunk in agent.stream_query(agent_req):
                 # The final chunk from stream_query is a JSON object with citations.
                 if chunk.startswith("\n{") and '"type"' in chunk and '"citations"' in chunk:
                     # Re-format as SSE citations event
-                    data = chunk.strip()
-                    yield f"data: {data}\n\n"
+                    data_str = chunk.strip()
+                    yield f"data: {data_str}\n\n"
+                    
+                    # Capture metadata for logging
+                    try:
+                        meta = json.loads(data_str)
+                        d = meta.get("data", {})
+                        citations = d.get("citations", [])
+                        latency_ms = d.get("latency_ms", 0)
+                        model_used = d.get("model_used", "")
+                        mode_used = d.get("mode_used", "")
+                        routing_reason = d.get("routing_reason", "")
+                    except Exception:  # noqa: BLE001
+                        pass
                 else:
                     # Plain text chunk — wrap in SSE text event
+                    full_answer += chunk
                     payload = json.dumps({"type": "text", "data": chunk})
                     yield f"data: {payload}\n\n"
+            
+            # Persist query log after stream finishes using a fresh session
+            try:
+                async with session_maker() as session:
+                    log = QueryLog(
+                        session_id=agent_req.session_id,
+                        query_text=agent_req.query,
+                        retrieved_chunk_ids=[], 
+                        llm_response=full_answer,
+                        citations=citations,
+                        latency_ms=float(latency_ms),
+                        model_used=model_used,
+                        mode_used=mode_used,
+                        routing_reason=routing_reason,
+                    )
+                    session.add(log)
+                    await session.commit()
+            except Exception as e:  # noqa: BLE001
+                logger.error("Failed to log streaming query to DB", error=str(e))
+
         except Exception as exc:  # noqa: BLE001
             logger.error("Streaming query failed", error=str(exc))
             error_payload = json.dumps({"type": "error", "data": str(exc)})

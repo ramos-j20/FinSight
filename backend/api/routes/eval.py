@@ -124,10 +124,10 @@ async def get_routing_stats() -> list[dict]:
 
     return [
         {
-            "mode_used": mode or "unknown",
-            "model_used": model or "unknown",
-            "count": q_count,
-            "avg_latency": float(avg_lat) if avg_lat else 0.0,
+            "mode_used": row.mode_used or "unknown",
+            "model_used": row.model_used or "unknown",
+            "count": row.query_count,
+            "avg_latency": float(row.avg_latency) if row.avg_latency else 0.0,
         }
-        for mode, model, q_count, avg_lat in rows
+        for row in rows
     ]
