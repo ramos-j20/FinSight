@@ -123,9 +123,9 @@ def render_chat_page(backend_url: str) -> None:
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-size: 2rem; font-weight: 800; margin-bottom: 0;
-        ">💬 FinSight Chat</h1>
+        ">💬 FinSight</h1>
         <p style="color: #94a3b8; margin-top: 4px;">
-            Ask any question about SEC filings. Responses are grounded in indexed documents.
+            Ask any question about the Mag 7's SEC filings. Responses are grounded in indexed documents. Designed to bring natural language interactions about complicated documents. 
         </p>
         """,
         unsafe_allow_html=True,
@@ -134,23 +134,6 @@ def render_chat_page(backend_url: str) -> None:
     # ── Filing selector ───────────────────────────────────────────────────────
     with st.container():
         ticker_filter, filing_type_filter = render_filing_selector(backend_url)
-
-    st.markdown("---")
-    
-    mode = st.radio(
-        "Query Mode",
-        ["🤖 Auto", "⚡ Fast", "🔬 Deep"],
-        horizontal=True,
-        help="Auto selects the best model based on your query. Fast = Haiku. Deep = Sonnet."
-    )
-
-    mode_map = {
-        "🤖 Auto": "auto",
-        "⚡ Fast": "fast",
-        "🔬 Deep": "deep"
-    }
-
-    st.markdown("---")
 
     # ── Control buttons ───────────────────────────────────────────────────────
     btn_col1, btn_col2, _ = st.columns([1, 1, 5])
@@ -197,6 +180,73 @@ def render_chat_page(backend_url: str) -> None:
                         _submit_feedback(backend_url, qlog_id, score + 1)  # 0-indexed → 1-5
                         st.session_state["feedback_submitted"].add(idx)
                         st.success("Thanks for your feedback! ⭐")
+
+    # ── Model Selection (Integrated with chat input) ──────────────────────────
+    st.markdown(
+        """
+        <style>
+            /* Fixed positioning for the model selector to place it INSIDE the chat input bar */
+            .st-key-model_selector {
+                position: fixed !important;
+                bottom: 68px !important;      /* Centered vertically in the ~57px chat bar */
+                left: 390px !important;        /* Aligned with the left side of the chat input */
+                z-index: 100001 !important;
+                transform: none !important;
+                width: 110px !important;
+            }
+            
+            /* Responsive adjustment for narrower screens */
+            @media (max-width: 1200px) {
+                .st-key-model_selector {
+                    left: 20px !important;
+                }
+            }
+
+            .st-key-model_selector div[data-baseweb="select"] {
+                background-color: transparent !important; /* Transparent for seamless integration */
+                border: none !important;
+                border-right: 1px solid rgba(56, 189, 248, 0.3) !important; /* Subtle divider */
+                border-radius: 0 !important;
+                font-size: 0.85rem !important;
+                height: 32px !important;
+                min-height: 32px !important;
+                box-shadow: none !important;
+            }
+            .st-key-model_selector label {
+                display: none !important;
+            }
+            .st-key-model_selector, .st-key-model_selector * {
+                cursor: pointer !important;
+            }
+
+            .st-key-model_selector div[data-testid="stCaptionContainer"] {
+                display: none !important;
+            }
+
+            /* Add padding to the chat input to make room for the dropdown */
+            [data-testid="stChatInput"] textarea {
+                padding-left: 120px !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    mode_options = ["✨ Auto", "⚡ Fast", "🔬 Deep"]
+    mode_map = {
+        "✨ Auto": "auto",
+        "⚡ Fast": "fast",
+        "🔬 Deep": "deep"
+    }
+
+    # Use a container at the same level as chat_input
+    mode = st.selectbox(
+        "Query Mode",
+        options=mode_options,
+        index=0,
+        help="Auto selects the best model based on your query. Fast = Haiku. Deep = Sonnet.",
+        key="model_selector"
+    )
 
     # ── Query input ───────────────────────────────────────────────────────────
     query = st.chat_input("Ask about any SEC filing…", key="chat_input")

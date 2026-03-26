@@ -48,6 +48,14 @@ st.markdown(
             font-size: 0.75rem;
             font-weight: 600;
         }
+
+        /* Global cursor indicator for selectboxes and multiselects */
+        div[data-testid="stSelectbox"], 
+        div[data-testid="stSelectbox"] *,
+        div[data-testid="stMultiSelect"],
+        div[data-testid="stMultiSelect"] * {
+            cursor: pointer !important;
+        }
     </style>
     """,
     unsafe_allow_html=True,
