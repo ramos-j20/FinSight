@@ -53,6 +53,8 @@ services:
     volumes:
       - ./backend:/app/backend
       - ./tests:/app/tests
+      - ./scripts:/app/scripts
+      - ./reports:/app/reports
     networks:
       - finsight-net
 
@@ -72,6 +74,7 @@ services:
       - BACKEND_URL=http://backend:8000
     volumes:
       - ./frontend:/app/frontend
+      - ./scripts:/app/scripts
     networks:
       - finsight-net
 

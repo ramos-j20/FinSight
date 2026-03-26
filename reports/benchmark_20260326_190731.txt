@@ -1,0 +1,38 @@
+╔══════════════════════════════════════════════════════════╗
+║          FINSIGHT OPTIMIZATION BENCHMARK REPORT          ║
+╚══════════════════════════════════════════════════════════╝
+
+  Queries run: 5 | Ticker: AAPL | Filing type: 10-K | Model: claude-haiku-4-5
+  Timestamp: 2026-03-26 19:07:31
+
+  ── PHASE 1: BASELINE (no optimizations) ──────────────────
+  Avg cost per query:   $0.012809
+  Avg latency:          6,485ms
+  Total cost (5q):     $0.064046
+  Cache hit rate:       0%
+
+  ── PHASE 2: PROMPT CACHING ───────────────────────────────
+  Avg cost per query:   $0.006574
+  Avg latency:          5,953ms
+  Total cost (5q):     $0.032869
+  Cache hit rate:       60%
+  Cost reduction:       +48.7%
+  Latency reduction:    +8.2%
+  Saved vs baseline:    $0.031177
+
+  ── PHASE 3: BATCH API ────────────────────────────────────
+  Total requests:       5
+  Succeeded:            5
+  Total cost (batch):   $0.026901
+  Cost without batch:   $0.053803
+  Saved via batch:      $0.026901 (50.0%)
+  Duration:             0s
+
+  ── COMBINED SAVINGS SUMMARY ──────────────────────────────
+  Caching alone saves:       48.7% per query
+  Batch alone saves:         50.0% per query
+  Best strategy by use case:
+    Real-time queries  → Prompt Caching  (low latency, ~49% cheaper)
+    Bulk / async jobs  → Batch API       (50% cheaper, async)
+
+All results have been persisted to the inference_metrics and batch_job_metrics tables.

@@ -2,9 +2,9 @@
 
 PROMPT_VERSION = "1.0.0"
 
-def build_system_prompt() -> str:
+def build_system_prompt(enable_caching: bool = False) -> str | list[dict]:
     """Build the system prompt for the FinSight agent."""
-    return """You are an expert financial document analyst specializing in SEC filings.
+    text = """You are an expert financial document analyst specializing in SEC filings.
 Your task is to answer user queries based ONLY on the provided context retrieved from SEC filings.
 
 CRITICAL RULES:
@@ -14,36 +14,71 @@ CRITICAL RULES:
 4. For comparative questions (e.g., "Q3 2024 vs Q3 2023"), structure your answer with clear before/after sections.
 5. If the user requests structured JSON output, return a valid JSON object as instructed.
 """
+    if enable_caching:
+        return [
+            {
+                "type": "text",
+                "text": text,
+                "cache_control": {"type": "ephemeral"}
+            }
+        ]
+    return text
 
-def build_rag_prompt(query: str, context: str, conversation_history: list[dict]) -> list[dict]:
+
+def build_rag_prompt(
+    query: str, 
+    context: str, 
+    conversation_history: list[dict], 
+    enable_caching: bool = True
+) -> list[dict]:
     """Build the messages array for a standard RAG query.
     
     Args:
         query: The user's query.
         context: The formatted context string.
         conversation_history: List of previous conversation turns (dict with 'role' and 'content').
+        enable_caching: Whether to enable prompt caching for context.
         
     Returns:
         List of dictionaries formatted for the Anthropic API.
     """
     messages = list(conversation_history)
     
-    user_content = f"""<context>
-{context}
-</context>
-
-Question: {query}
-
-Provide a detailed answer with citations to the numbered sources above."""
+    context_content = []
+    
+    # Estimate tokens: len(context) // 4 > 1024
+    if enable_caching and (len(context) // 4 > 1024):
+        context_content.append({
+            "type": "text",
+            "text": f"<context>\n{context}\n</context>",
+            "cache_control": {"type": "ephemeral"}
+        })
+    else:
+        context_content.append({
+            "type": "text",
+            "text": f"<context>\n{context}\n</context>"
+        })
+        
+    context_content.append({
+        "type": "text",
+        "text": f"\n\nQuestion: {query}\n\nProvide a detailed answer with citations to the numbered sources above."
+    })
 
     messages.append({
         "role": "user",
-        "content": user_content
+        "content": context_content
     })
     
     return messages
 
-def build_comparison_prompt(query: str, context: str, ticker: str, periods: list[str]) -> list[dict]:
+
+def build_comparison_prompt(
+    query: str, 
+    context: str, 
+    ticker: str, 
+    periods: list[str],
+    enable_caching: bool = True
+) -> list[dict]:
     """Build the messages array for a comparative query.
     
     Instructs the model to return a structured JSON response.
@@ -58,40 +93,28 @@ def build_comparison_prompt(query: str, context: str, ticker: str, periods: list
         List of dictionaries formatted for the Anthropic API.
     """
     periods_str = ", ".join(periods)
-    user_content = f"""<context>
-{context}
-</context>
+    
+    context_content = []
+    if enable_caching and (len(context) // 4 > 1024):
+        context_content.append({
+            "type": "text",
+            "text": f"<context>\n{context}\n</context>",
+            "cache_control": {"type": "ephemeral"}
+        })
+    else:
+        context_content.append({
+            "type": "text",
+            "text": f"<context>\n{context}\n</context>"
+        })
 
-Question: {query}
-
-You must return a structured JSON response containing the comparison for {ticker} across the following periods: {periods_str}.
-Do NOT output any markdown blocks (e.g., ```json) around your response, just return the raw JSON object.
-
-The JSON should have exactly this format:
-{{
-  "summary": "your high-level summary of the comparison",
-  "period_1": {{
-    "period": "first period name",
-    "key_points": ["point 1", "point 2"]
-  }},
-  "period_2": {{
-    "period": "second period name",
-    "key_points": ["point 1", "point 2"]
-  }},
-  "citations": [
-    {{
-      "reference_number": 1,
-      "text": "brief explanation of what this source supports"
-    }}
-  ]
-}}
-
-Ensure all citations reference the numbered sources provided in the context.
-"""
+    context_content.append({
+        "type": "text",
+        "text": f"\n\nQuestion: {query}\n\nYou must return a structured JSON response containing the comparison for {ticker} across the following periods: {periods_str}.\nDo NOT output any markdown blocks (e.g., ```json) around your response, just return the raw JSON object.\n\nThe JSON should have exactly this format:\n{{\n  \"summary\": \"your high-level summary of the comparison\",\n  \"period_1\": {{\n    \"period\": \"first period name\",\n    \"key_points\": [\"point 1\", \"point 2\"]\n  }},\n  \"period_2\": {{\n    \"period\": \"second period name\",\n    \"key_points\": [\"point 1\", \"point 2\"]\n  }},\n  \"citations\": [\n    {{\n      \"reference_number\": 1,\n      \"text\": \"brief explanation of what this source supports\"\n    }}\n  ]\n}}\n\nEnsure all citations reference the numbered sources provided in the context."
+    })
 
     return [
         {
             "role": "user",
-            "content": user_content
+            "content": context_content
         }
     ]

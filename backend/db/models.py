@@ -72,3 +72,46 @@ class EvalResult(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.datetime.utcnow
     )
+
+
+class InferenceMetrics(Base):
+    __tablename__ = "inference_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    query_log_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    model_used: Mapped[str] = mapped_column(String(100))
+    mode_used: Mapped[str] = mapped_column(String(50))
+    input_tokens: Mapped[int] = mapped_column(Integer)
+    output_tokens: Mapped[int] = mapped_column(Integer)
+    cache_read_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cache_write_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    latency_ms: Mapped[int] = mapped_column(Integer)
+    estimated_cost_usd: Mapped[float] = mapped_column(Float)  # Using Float for simplicity in models, but precision matters in logic
+    caching_enabled: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.datetime.utcnow
+    )
+
+
+class BatchJobMetrics(Base):
+    __tablename__ = "batch_job_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    batch_job_id: Mapped[str] = mapped_column(String(255), index=True)
+    total_requests: Mapped[int] = mapped_column(Integer)
+    succeeded: Mapped[int] = mapped_column(Integer)
+    failed: Mapped[int] = mapped_column(Integer)
+    input_tokens_total: Mapped[int] = mapped_column(Integer)
+    output_tokens_total: Mapped[int] = mapped_column(Integer)
+    estimated_cost_usd: Mapped[float] = mapped_column(Float)
+    estimated_cost_without_batch_usd: Mapped[float] = mapped_column(Float)
+    savings_usd: Mapped[float] = mapped_column(Float)
+    savings_pct: Mapped[float] = mapped_column(Float)
+    duration_seconds: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(50))  # PENDING / PROCESSING / COMPLETE / FAILED
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.datetime.utcnow
+    )
+    completed_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

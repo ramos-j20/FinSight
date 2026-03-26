@@ -22,7 +22,9 @@ def detect_query_complexity(query: str) -> Literal["fast", "deep"]:
     complex_keywords = [
         r"analyze", r"compare", r"trend", r"why", r"impact",
         r"risk", r"forecast", r"strategy", r"sentiment",
-        r"comprehensive", r"deep", r"investigate"
+        r"comprehensive", r"deep", r"investigate",
+        r"earnings", r"eps", r"revenue", r"financials",
+        r"balance sheet", r"cash flow", r"10-k", r"10-q"
     ]
     
     # Check for keyword matches
@@ -49,7 +51,7 @@ def resolve_model(query: str, mode_override: str | None = None, query_type: str 
     
     # Set parameters based on query type or mode
     max_tokens = 2000 if mode == "deep" or query_type == "comparison" else 1000
-    top_k = 150 if mode == "deep" or query_type == "comparison" else 50
+    top_k = 150 if mode == "deep" or query_type == "comparison" else 75
     
     return ModelRoute(
         model=model,

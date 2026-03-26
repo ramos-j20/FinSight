@@ -87,7 +87,7 @@ async def query_endpoint(
 
     try:
         agent = FinSightAgent()
-        agent_resp = agent.query(agent_req)
+        agent_resp = await agent.query(agent_req)
     except Exception as exc:  # noqa: BLE001
         logger.error("Agent query failed", error=str(exc))
         raise HTTPException(status_code=500, detail={"error": str(exc)}) from exc
