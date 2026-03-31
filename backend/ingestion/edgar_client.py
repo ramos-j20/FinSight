@@ -56,9 +56,6 @@ class EDGARClient:
             "Accept-Encoding": "gzip, deflate",
         }
 
-    # ------------------------------------------------------------------
-    # Internal HTTP helper
-    # ------------------------------------------------------------------
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -72,9 +69,6 @@ class EDGARClient:
             response.raise_for_status()
             return response
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
     async def get_company_cik(self, ticker: str) -> str:
         """Fetch the CIK (Central Index Key) for a given ticker symbol.
 
@@ -203,7 +197,6 @@ class EDGARClient:
                 f"Failed to download filing from {url}: {exc}"
             ) from exc
 
-        # Detect HTML content and strip tags
         if bool(re.search(r"<\s*(html|body|div|table|p)\b", raw, re.IGNORECASE)):
             soup = BeautifulSoup(raw, "html.parser")
             
@@ -221,7 +214,6 @@ class EDGARClient:
         else:
             text = raw
 
-        # Basic whitespace normalization
         text = re.sub(r"\n{3,}", "\n\n", text)
         text = text.strip()
 

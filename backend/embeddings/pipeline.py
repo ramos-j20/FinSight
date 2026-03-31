@@ -56,16 +56,13 @@ def run_embedding_pipeline(
         period=period,
     )
 
-    # 1. Read chunks from S3
     s3 = S3Client()
     s3_key = S3Client.processed_key(ticker, filing_type, period)
     json_str = s3.download_text(s3_key)
 
-    # 2. Deserialize
     all_chunks = deserialize_chunks(json_str)
     logger.info("Deserialized chunks", count=len(all_chunks))
 
-    # 3. Deduplicate — skip chunks already in Pinecone
     pc = PineconeClient()
     all_ids = [c.chunk_id for c in all_chunks]
     existing_ids = pc.fetch_ids(all_ids)
@@ -87,13 +84,11 @@ def run_embedding_pipeline(
             timestamp=datetime.now(timezone.utc),
         )
 
-    # 4. Embed
     embedder = OpenAIEmbedder()
     texts = [c.text for c in new_chunks]
     embeddings = embedder.embed_batch(texts)
     logger.info("Batch embedding complete", count=len(embeddings))
 
-    # 5. Upsert
     upserted = pc.upsert_chunks(new_chunks, embeddings)
 
     duration = round(time.time() - start, 2)

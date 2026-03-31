@@ -13,11 +13,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Dataclasses
-# ---------------------------------------------------------------------------
-
-
 @dataclass
 class EvalQuery:
     """A single evaluation query with its expected retrieval results."""
@@ -36,11 +31,6 @@ class EvalMetrics:
     avg_score: float
     total_queries: int
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
-
-# ---------------------------------------------------------------------------
-# Dataset loader
-# ---------------------------------------------------------------------------
 
 
 def load_eval_dataset(path: str) -> list[EvalQuery]:
@@ -77,11 +67,6 @@ def load_eval_dataset(path: str) -> list[EvalQuery]:
 
     logger.info("Loaded eval dataset", path=path, count=len(queries))
     return queries
-
-
-# ---------------------------------------------------------------------------
-# Eval runner
-# ---------------------------------------------------------------------------
 
 
 def run_retrieval_eval(
@@ -121,12 +106,10 @@ def run_retrieval_eval(
         avg_chunk_score = sum(c.score for c in retrieved) / len(retrieved) if retrieved else 0.0
         total_scores.append(avg_chunk_score)
 
-        # Hit: at least one expected chunk appears in retrieved results
         hit = any(eid in retrieved_ids for eid in eq.expected_chunk_ids)
         if hit:
             hits += 1
 
-        # MRR: find the rank of the first expected chunk
         rr = 0.0
         for rank, cid in enumerate(retrieved_ids, start=1):
             if cid in eq.expected_chunk_ids:
@@ -169,11 +152,6 @@ def run_retrieval_eval(
     )
 
     return metrics, per_query_results
-
-
-# ---------------------------------------------------------------------------
-# Result persistence
-# ---------------------------------------------------------------------------
 
 
 async def save_eval_results(

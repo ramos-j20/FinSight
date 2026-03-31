@@ -22,7 +22,6 @@ from airflow.models import Variable
 
 log = logging.getLogger(__name__)
 
-# Default DAG arguments
 DEFAULT_ARGS = {
     "owner": "finsight",
     "retries": 1,
@@ -51,9 +50,6 @@ def _run_async(coro):
 def edgar_ingestion_dag():
     """SEC EDGAR ingestion pipeline."""
 
-    # ------------------------------------------------------------------
-    # Task 1: Fetch CIKs
-    # ------------------------------------------------------------------
     @task()
     def fetch_company_ciks() -> dict[str, str]:
         """Resolve ticker symbols to SEC CIK numbers."""
@@ -77,9 +73,6 @@ def edgar_ingestion_dag():
         log.info("CIK fetch complete. Resolved %d / %d tickers", len(cik_map), len(tickers))
         return cik_map
 
-    # ------------------------------------------------------------------
-    # Task 2: Fetch filing metadata
-    # ------------------------------------------------------------------
     @task()
     def fetch_filing_metadata(cik_map: dict[str, str]) -> list[dict]:
         """Fetch filing metadata for each ticker/filing-type combination.
@@ -142,9 +135,6 @@ def edgar_ingestion_dag():
         log.info("New filings to ingest: %d", len(new_filings))
         return new_filings
 
-    # ------------------------------------------------------------------
-    # Task 3: Download raw text and store in S3
-    # ------------------------------------------------------------------
     @task()
     def download_and_store_raw(filings: list[dict]) -> list[dict]:
         """Download filing text and upload to the S3 raw layer."""
@@ -178,9 +168,6 @@ def edgar_ingestion_dag():
         log.info("Raw filings stored: %d / %d", len(stored), len(filings))
         return stored
 
-    # ------------------------------------------------------------------
-    # Task 4: Parse, chunk, and store processed data
-    # ------------------------------------------------------------------
     @task()
     def parse_and_chunk(filings: list[dict]) -> None:
         """Parse raw filings, chunk them, and upload to S3 processed layer."""
@@ -230,9 +217,6 @@ def edgar_ingestion_dag():
             except Exception:
                 log.exception("Failed: %s %s %s", ticker, ftype, period)
 
-    # ------------------------------------------------------------------
-    # Wire the DAG
-    # ------------------------------------------------------------------
     ciks = fetch_company_ciks()
     metadata = fetch_filing_metadata(ciks)
     raw = download_and_store_raw(metadata)

@@ -68,7 +68,6 @@ class TestUpsertBatching:
         assert result == 50
         assert mock_index.upsert.call_count == 1
 
-        # Verify batch size
         call_args = mock_index.upsert.call_args
         batch = call_args.kwargs.get("vectors") or call_args[1].get("vectors")
         assert len(batch) == 50
@@ -90,7 +89,6 @@ class TestUpsertBatching:
         assert result == 250
         assert mock_index.upsert.call_count == 3
 
-        # Verify batch sizes: 100, 100, 50
         batch_sizes = []
         for call in mock_index.upsert.call_args_list:
             batch = call.kwargs.get("vectors") or call[1].get("vectors")
@@ -131,7 +129,6 @@ class TestQuery:
         mock_index = MagicMock()
         mock_pinecone_cls.return_value.Index.return_value = mock_index
 
-        # Simulate Pinecone query response
         mock_index.query.return_value = {
             "matches": [
                 {
@@ -167,7 +164,6 @@ class TestQuery:
         assert len(results) == 2
         assert all(isinstance(r, RetrievedChunk) for r in results)
 
-        # First result
         assert results[0].chunk_id == "AAPL_10-K_2024_0"
         assert results[0].ticker == "AAPL"
         assert results[0].filing_type == "10-K"
@@ -176,6 +172,5 @@ class TestQuery:
         assert results[0].text == "Apple revenue grew significantly."
         assert results[0].source_url == "https://sec.gov/example"
 
-        # Second result
         assert results[1].chunk_id == "AAPL_10-K_2024_1"
         assert results[1].score == 0.87

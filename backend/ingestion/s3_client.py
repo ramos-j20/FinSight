@@ -27,9 +27,6 @@ class S3Client:
             region_name=settings.AWS_REGION,
         )
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
     def upload_text(self, content: str, s3_key: str) -> str:
         """Upload text content to S3.
 
@@ -104,9 +101,6 @@ class S3Client:
         except ClientError:
             return False
 
-    # ------------------------------------------------------------------
-    # Key-building helpers
-    # ------------------------------------------------------------------
     @staticmethod
     def raw_key(ticker: str, filing_type: str, period: str) -> str:
         """Build the S3 key for a raw filing."""

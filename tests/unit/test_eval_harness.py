@@ -6,11 +6,6 @@ from backend.eval.harness import EvalMetrics, EvalQuery, run_retrieval_eval
 from backend.embeddings.pinecone_client import RetrievedChunk
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
 def _make_chunk(chunk_id: str, score: float = 0.9) -> RetrievedChunk:
     return RetrievedChunk(
         chunk_id=chunk_id,
@@ -28,11 +23,6 @@ def _make_retriever(returned_chunks: list[RetrievedChunk]) -> MagicMock:
     retriever = MagicMock()
     retriever.retrieve.return_value = returned_chunks
     return retriever
-
-
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
 
 
 class TestHitRate:

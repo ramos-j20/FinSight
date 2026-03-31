@@ -43,9 +43,6 @@ class PineconeClient:
             index=settings.PINECONE_INDEX_NAME,
         )
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
     def upsert_chunks(
         self,
         chunks: list[DocumentChunk],

@@ -8,9 +8,6 @@ import pytest
 from backend.ingestion.edgar_client import EDGARClient, FilingRecord
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
 MOCK_ENV = {
     "ANTHROPIC_API_KEY": "test",
     "OPENAI_API_KEY": "test",
@@ -51,9 +48,6 @@ def _clear_settings_cache():
     get_settings.cache_clear()
 
 
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
 @mock.patch.dict(os.environ, MOCK_ENV)
 class TestGetCompanyCik:
     """Tests for EDGARClient.get_company_cik."""
@@ -117,13 +111,11 @@ class TestFetchFilingText:
         with mock.patch.object(client, "_get", return_value=mock_response):
             text = await client.fetch_filing_text(record)
 
-        # No HTML tags should remain
         assert "<html>" not in text
         assert "<body>" not in text
         assert "<p>" not in text
         assert "<div>" not in text
 
-        # Content should be preserved
         assert "ITEM 1. BUSINESS" in text
         assert "Apple Inc." in text
         assert "RISK FACTORS" in text
@@ -185,7 +177,6 @@ class TestRetryLogic:
 
         client = EDGARClient()
 
-        # Patch at the httpx level so the retry decorator actually fires
         with mock.patch("httpx.AsyncClient.get", side_effect=mock_get):
             response = await client._get("https://example.com")
 

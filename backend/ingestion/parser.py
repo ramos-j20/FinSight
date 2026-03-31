@@ -21,9 +21,6 @@ class ParsedDocument:
     parsed_at: datetime
 
 
-# ---------------------------------------------------------------------------
-# Regex patterns for boilerplate removal
-# ---------------------------------------------------------------------------
 _XBRL_TAG_RE = re.compile(r"<[/]?(?:xbrli?|ix|link|context|us-gaap)[^>]*>", re.IGNORECASE)
 _SEC_HEADER_RE = re.compile(
     r"^-----+BEGIN PRIVACY-ENHANCED MESSAGE-----.*?^-----+END PRIVACY-ENHANCED MESSAGE-----",
@@ -76,21 +73,16 @@ def parse_filing_to_text(
 
     text = raw_text
 
-    # 1. Remove XBRL tags and SEC privacy-enhanced-message blocks
     text = _XBRL_TAG_RE.sub("", text)
     text = _SEC_HEADER_RE.sub("", text)
 
-    # 2. Remove remaining HTML tags
     text = _HTML_TAG_RE.sub("", text)
 
-    # 3. Remove standalone page-number lines
     text = _PAGE_NUMBER_RE.sub("", text)
 
-    # 4. Remove non-ASCII characters but preserve common typographic chars
     text = text.replace("—", "-").replace("–", "-").replace("\xa0", " ").replace("\u00A0", " ")
     text = _NON_ASCII_RE.sub("", text)
 
-    # 5. Normalize whitespace
     text = _MULTI_SPACE_RE.sub(" ", text)
     text = _MULTI_NEWLINE_RE.sub("\n\n", text)
     text = text.strip()

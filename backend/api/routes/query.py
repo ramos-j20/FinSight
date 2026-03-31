@@ -22,11 +22,6 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
-
-
 def _build_citation_responses(agent_response: AgentResponse) -> list[CitationResponse]:
     """Convert agent Citation dataclasses to API CitationResponse models."""
     return [
@@ -63,11 +58,6 @@ async def _log_query(
     await db.commit()
     await db.refresh(log)
     return log.id
-
-
-# ---------------------------------------------------------------------------
-# POST /query
-# ---------------------------------------------------------------------------
 
 
 @router.post("/", response_model=QueryResponse)
@@ -109,11 +99,6 @@ async def query_endpoint(
         mode_used=agent_resp.mode_used,
         routing_reason=agent_resp.routing_reason,
     )
-
-
-# ---------------------------------------------------------------------------
-# POST /query/stream
-# ---------------------------------------------------------------------------
 
 
 @router.post("/stream")
@@ -191,11 +176,6 @@ async def query_stream_endpoint(request: QueryRequest) -> StreamingResponse:
             yield f"data: {error_payload}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
-
-
-# ---------------------------------------------------------------------------
-# POST /query/{query_log_id}/feedback
-# ---------------------------------------------------------------------------
 
 
 @router.post("/{query_log_id}/feedback")

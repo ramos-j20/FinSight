@@ -109,7 +109,7 @@ def build_comparison_prompt(
 
     context_content.append({
         "type": "text",
-        "text": f"\n\nQuestion: {query}\n\nYou must return a structured JSON response containing the comparison for {ticker} across the following periods: {periods_str}.\nDo NOT output any markdown blocks (e.g., ```json) around your response, just return the raw JSON object.\n\nThe JSON should have exactly this format:\n{{\n  \"summary\": \"your high-level summary of the comparison\",\n  \"period_1\": {{\n    \"period\": \"first period name\",\n    \"key_points\": [\"point 1\", \"point 2\"]\n  }},\n  \"period_2\": {{\n    \"period\": \"second period name\",\n    \"key_points\": [\"point 1\", \"point 2\"]\n  }},\n  \"citations\": [\n    {{\n      \"reference_number\": 1,\n      \"text\": \"brief explanation of what this source supports\"\n    }}\n  ]\n}}\n\nEnsure all citations reference the numbered sources provided in the context."
+        "text": f"\n\nQuestion: {query}\n\nProvide a comprehensive comparison for {ticker} across the following periods: {periods_str}.\n\nStructure your answer with:\n1. A high-level **Summary** explaining the main trends.\n2. A detailed **Period Analysis** comparing the specific metrics for each period.\n3. Clear **Key Drivers** explaining why the changes occurred.\n\nIMPORTANT: Use citations in the format [1], [2], etc., whenever you reference data from the context. Ensure your final answer is nicely formatted in MarkDown for a chat interface."
     })
 
     return [

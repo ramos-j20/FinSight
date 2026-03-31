@@ -25,7 +25,6 @@ def mock_retriever():
 def mock_anthropic():
     client = MagicMock()
     mock_msg = MagicMock()
-    # Mock response.content[0].text
     mock_block = MagicMock()
     mock_block.text = "Here is the answer [1]."
     mock_msg.content = [mock_block]
@@ -68,4 +67,4 @@ def test_query_comparative(mock_retriever_class, mock_async_anthropic_class, moc
     assert len(messages) == 1
     assert "structured JSON response" in messages[0]["content"]
 
-# Async tests could be added but the logic is analogous
+

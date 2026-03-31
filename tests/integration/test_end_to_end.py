@@ -29,9 +29,6 @@ def main() -> None:
     print(f"Backend: {BACKEND_URL}")
     print("=" * 60)
 
-    # ------------------------------------------------------------------
-    # 1. Health check
-    # ------------------------------------------------------------------
     print("\n[1/5] Health check …")
     try:
         r = httpx.get(f"{BACKEND_URL}/health", timeout=10)
@@ -40,9 +37,6 @@ def main() -> None:
         print(f"  ❌ Backend unreachable: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    # ------------------------------------------------------------------
-    # 2. POST /query — runs a real RAG query
-    # ------------------------------------------------------------------
     print(f'\n[2/5] POST /query — "{QUERY}" …')
     t0 = time.monotonic()
     try:
@@ -72,9 +66,6 @@ def main() -> None:
     citations: list = body["citations"]
     latency_ms: int = body.get("latency_ms", elapsed_ms)
 
-    # ------------------------------------------------------------------
-    # 3. POST /query/{id}/feedback
-    # ------------------------------------------------------------------
     print(f"\n[3/5] POST /query/{query_log_id}/feedback (score=5) …")
     r = httpx.post(
         f"{BACKEND_URL}/query/{query_log_id}/feedback",
@@ -84,18 +75,12 @@ def main() -> None:
     _check(r.status_code == 200, f"POST /query/{query_log_id}/feedback → {r.status_code}")
     _check(r.json().get("status") == "ok", "Feedback status is 'ok'")
 
-    # ------------------------------------------------------------------
-    # 4. GET /eval/results
-    # ------------------------------------------------------------------
     print("\n[4/5] GET /eval/results …")
     r = httpx.get(f"{BACKEND_URL}/eval/results", timeout=10)
     _check(r.status_code == 200, f"GET /eval/results → {r.status_code}")
     results = r.json()
     _check(isinstance(results, list), "eval/results returns a list")
 
-    # ------------------------------------------------------------------
-    # 5. GET /documents — confirm index has at least some content
-    # ------------------------------------------------------------------
     print("\n[5/5] GET /documents …")
     r = httpx.get(f"{BACKEND_URL}/documents/", timeout=10)
     _check(r.status_code == 200, f"GET /documents → {r.status_code}")
@@ -103,9 +88,6 @@ def main() -> None:
     _check("total_count" in docs, "documents response has 'total_count'")
     _check("filings" in docs, "documents response has 'filings'")
 
-    # ------------------------------------------------------------------
-    # Summary
-    # ------------------------------------------------------------------
     print("\n" + "=" * 60)
     print(
         f"✅ End-to-end test passed. "

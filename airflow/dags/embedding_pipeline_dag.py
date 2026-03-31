@@ -36,9 +36,6 @@ DEFAULT_ARGS = {
 def embedding_pipeline_dag():
     """Embedding pipeline — embed SEC filings and upsert to Pinecone."""
 
-    # ------------------------------------------------------------------
-    # Task 1: Get pending filings from PostgreSQL
-    # ------------------------------------------------------------------
     @task()
     def get_pending_filings() -> list[dict]:
         """Query FilingMetadata for COMPLETE filings not yet embedded.
@@ -78,9 +75,6 @@ def embedding_pipeline_dag():
         log.info("Pending filings for embedding: %d", len(filings))
         return filings
 
-    # ------------------------------------------------------------------
-    # Task 2: Embed & upsert for each filing
-    # ------------------------------------------------------------------
     @task()
     def embed_and_upsert(filing: dict) -> dict | None:
         """Run the embedding pipeline for a single pending filing.
@@ -135,9 +129,6 @@ def embedding_pipeline_dag():
             log.exception("Failed to embed %s %s %s", ticker, filing_type, period)
             return None
 
-    # ------------------------------------------------------------------
-    # Task 3: Log Pinecone index stats
-    # ------------------------------------------------------------------
     @task()
     def log_index_stats(results: list[dict | None]) -> None:
         """Log current Pinecone index statistics."""
@@ -151,9 +142,6 @@ def embedding_pipeline_dag():
         log.info("Pinecone index stats: %s", stats)
         log.info("Embedding results summary: %s", valid_results)
 
-    # ------------------------------------------------------------------
-    # Wire the DAG
-    # ------------------------------------------------------------------
     pending = get_pending_filings()
     embedded = embed_and_upsert.expand(filing=pending)
     log_index_stats(embedded)
