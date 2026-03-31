@@ -89,28 +89,6 @@ docker-compose exec backend alembic upgrade head
 
 ---
 
-## Example Query & Output
-
-**Query:** "What are Apple's main business risks?"
-
-```
-FinSight: Apple faces several key business risks including intense competition
-in the smartphone market, supply chain concentration in Asia, regulatory scrutiny
-across major markets, and dependence on a small number of key products (iPhone
-accounts for ~52% of revenue). Foreign exchange headwinds also pose ongoing risk
-given international revenue exposure.
-
-Sources:
-[1] AAPL | 10-K | 2023-09-30
-    "...the Company faces intense competition across all product lines..."
-[2] AAPL | 10-K | 2023-09-30
-    "...significant concentration of manufacturing operations in China..."
-
-⏱ 2,341 ms  •  🔖 v1
-```
-
----
-
 ## Evaluation Harness
 
 FinSight includes a retrieval evaluation pipeline accessible from the Eval Dashboard.
